@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Balões Infinitos</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="game-shell">
+      <canvas id="gameCanvas" aria-label="Jogo Balões Infinitos"></canvas>
+
+      <section class="hud" aria-label="Placar e controles">
+        <div class="score-block">
+          <span class="score-label">Pontos</span>
+          <strong id="score">0</strong>
+        </div>
+        <div class="score-block">
+          <span class="score-label">Recorde</span>
+          <strong id="highScore">0</strong>
+        </div>
+        <div class="status-pill" id="statusPill">vento leve</div>
+      </section>
+
+      <nav class="toolbar" aria-label="Controles do jogo">
+        <button class="icon-button" id="soundToggle" type="button" aria-label="Alternar som" title="Som ligado">
+          <span id="soundIcon">🔊</span>
+        </button>
+        <label class="difficulty-control" for="difficulty">
+          <span>Dificuldade</span>
+          <select id="difficulty">
+            <option value="easy">Leve</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Insana</option>
+          </select>
+        </label>
+        <button class="text-button" id="scoresButton" type="button">Últimas 10</button>
+        <button class="text-button danger" id="resetButton" type="button">Reiniciar</button>
+      </nav>
+
+      <div class="legend" aria-label="Dicas dos balões especiais">
+        <span><i class="dot boom"></i> rajada</span>
+        <span><i class="dot trap"></i> falso</span>
+        <span><i class="dot speed"></i> turbo</span>
+        <span><i class="dot shell"></i> casco</span>
+        <span><i class="dot gold"></i> bônus</span>
+      </div>
+    </main>
+
+    <dialog id="scoresModal">
+      <form method="dialog" class="modal-panel">
+        <header>
+          <h1>Últimas pontuações</h1>
+          <button class="icon-button" value="close" aria-label="Fechar" title="Fechar">×</button>
+        </header>
+        <ol id="scoreHistory" class="score-history"></ol>
+        <p id="emptyHistory" class="empty-history">Nenhuma pontuação salva ainda.</p>
+      </form>
+    </dialog>
+
+    <script src="game.js"></script>
+  </body>
+</html>
