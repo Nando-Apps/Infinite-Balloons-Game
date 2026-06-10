@@ -7,11 +7,13 @@ Infinite Balloons is a small HTML5 arcade game built with vanilla JavaScript, CS
 ## Features
 
 - Endless balloon spawning with randomized colors, speed, and sway.
-- Pointer and touch controls.
+- Responsive pointer and touch controls designed for phones.
 - Immediate score and high score display.
 - High score stored in `localStorage` as soon as it is beaten.
 - Last 10 finished scores stored in `localStorage` and shown in a modal.
-- Persistent settings for sound and difficulty.
+- Persistent settings for sound, difficulty, and locale.
+- Locale toggle for `pt-BR` and `en-US`.
+- Smoother balloon motion with entrance scaling, wind trails, shield feedback, burst particles, and shockwave transitions.
 - Special balloons:
   - Burst balloon: pops all visible balloons and adds their points.
   - Trap balloon: resets the current score.
@@ -24,11 +26,11 @@ Infinite Balloons is a small HTML5 arcade game built with vanilla JavaScript, CS
 
 ```text
 .
-├── index.html      # Game markup and HUD
-├── styles.css      # Responsive layout and visual styling
-├── game.js         # Canvas game loop, spawning, scoring, storage, and audio
-├── package.json    # Development script
-└── README.pt-BR.md # Portuguese README
+|-- index.html      # Game markup, HUD, controls, and modal
+|-- styles.css      # Responsive layout and visual styling
+|-- game.js         # Canvas game loop, i18n, spawning, scoring, storage, and audio
+|-- package.json    # Development script
+`-- README.pt-BR.md # Portuguese README
 ```
 
 ## Getting Started
@@ -61,10 +63,12 @@ The game stores data in browser `localStorage` using these keys:
 - `balloonGame.history`
 - `balloonGame.sound`
 - `balloonGame.difficulty`
+- `balloonGame.locale`
 
 ## Development Notes
 
 - Keep the project dependency-light and browser-native.
 - Prefer Canvas drawing for gameplay objects.
 - Keep UI controls accessible from both mouse and touch devices.
+- Keep all visible game text in the `I18N` dictionary in `game.js`.
 - When adding new special balloons, update the legend, drawing mark, scoring behavior, and README.
