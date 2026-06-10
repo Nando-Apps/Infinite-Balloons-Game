@@ -11,8 +11,8 @@ This repository contains a static HTML5 Canvas game called Infinite Balloons. Ag
 ## Source Map
 
 - `index.html`: HUD, modal, controls, and script/style loading.
-- `styles.css`: full-screen layout, responsive controls, modal, and visual polish.
-- `game.js`: game loop, balloon spawning, special effects, scoring, local storage, and generated sound.
+- `styles.css`: full-screen layout, mobile-first controls, modal, and visual polish.
+- `game.js`: game loop, i18n, balloon spawning, special effects, scoring, local storage, and generated sound.
 
 ## Implementation Guidelines
 
@@ -20,6 +20,7 @@ This repository contains a static HTML5 Canvas game called Infinite Balloons. Ag
 - Keep gameplay rendering in Canvas.
 - Keep persistent data in `localStorage` with the existing `balloonGame.*` keys unless a migration is required.
 - Preserve mouse and touch support through pointer events.
+- Put visible runtime text in the `I18N` dictionary and support both `pt-BR` and `en-US`.
 - Keep UI text consistent across `index.html`, `README.md`, and `README.pt-BR.md` when behavior changes.
 - Avoid large framework additions for simple UI or gameplay updates.
 
@@ -32,6 +33,7 @@ When adding or changing a special balloon, update all relevant places:
 - Pop behavior in `popBalloon`.
 - Score behavior in `popAllVisible` if needed.
 - Legend markup and styles.
+- Locale labels in `I18N` if new visible text is introduced.
 - English and Portuguese README files.
 
 ## Storage Keys
@@ -40,6 +42,7 @@ When adding or changing a special balloon, update all relevant places:
 - `balloonGame.history`
 - `balloonGame.sound`
 - `balloonGame.difficulty`
+- `balloonGame.locale`
 
 ## Review Focus
 
@@ -49,4 +52,5 @@ Before finishing a change, check:
 - The Canvas resizes correctly on desktop and mobile viewports.
 - Score and high score update immediately.
 - Recent score history remains capped at 10 entries.
-- Controls do not overlap on small screens.
+- Controls do not overlap on small screens and remain easy to tap.
+- Locale switching updates controls, modal text, and history formatting.

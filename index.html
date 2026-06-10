@@ -2,62 +2,76 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Balões Infinitos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1628">
+    <title data-i18n="title">Baloes Infinitos</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="game-shell">
-      <canvas id="gameCanvas" aria-label="Jogo Balões Infinitos"></canvas>
+      <canvas id="gameCanvas" aria-label="Baloes Infinitos"></canvas>
 
-      <section class="hud" aria-label="Placar e controles">
-        <div class="score-block">
-          <span class="score-label">Pontos</span>
+      <section class="hud" aria-label="Score">
+        <div class="score-card primary">
+          <span class="score-label" data-i18n="score">Score</span>
           <strong id="score">0</strong>
         </div>
-        <div class="score-block">
-          <span class="score-label">Recorde</span>
+        <div class="score-card">
+          <span class="score-label" data-i18n="highScore">High score</span>
           <strong id="highScore">0</strong>
         </div>
-        <div class="status-pill" id="statusPill">vento leve</div>
       </section>
 
-      <nav class="toolbar" aria-label="Controles do jogo">
-        <button class="icon-button" id="soundToggle" type="button" aria-label="Alternar som" title="Som ligado">
-          <span id="soundIcon">🔊</span>
-        </button>
-        <label class="difficulty-control" for="difficulty">
-          <span>Dificuldade</span>
-          <select id="difficulty">
-            <option value="easy">Leve</option>
-            <option value="normal">Normal</option>
-            <option value="hard">Insana</option>
-          </select>
-        </label>
-        <button class="text-button" id="scoresButton" type="button">Últimas 10</button>
-        <button class="text-button danger" id="resetButton" type="button">Reiniciar</button>
-      </nav>
+      <div class="status-pill" id="statusPill">light wind</div>
 
-      <div class="legend" aria-label="Dicas dos balões especiais">
-        <span><i class="dot boom"></i> rajada</span>
-        <span><i class="dot trap"></i> falso</span>
-        <span><i class="dot speed"></i> turbo</span>
-        <span><i class="dot shell"></i> casco</span>
-        <span><i class="dot gold"></i> bônus</span>
-      </div>
+      <section class="bottom-panel" aria-label="Game controls">
+        <div class="quick-actions">
+          <button class="icon-button" id="soundToggle" type="button">
+            <span class="button-icon" id="soundIcon">ON</span>
+            <span class="button-label" data-i18n="sound">Sound</span>
+          </button>
+
+          <div class="locale-toggle" role="group" aria-label="Language">
+            <button class="segmented active" id="localePt" type="button" data-locale-option="pt-BR">PT</button>
+            <button class="segmented" id="localeEn" type="button" data-locale-option="en-US">EN</button>
+          </div>
+
+          <label class="select-control" for="difficulty">
+            <span data-i18n="difficulty">Difficulty</span>
+            <select id="difficulty">
+              <option value="easy" data-i18n="difficultyEasy">Easy</option>
+              <option value="normal" data-i18n="difficultyNormal">Normal</option>
+              <option value="hard" data-i18n="difficultyHard">Hard</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="secondary-actions">
+          <button class="text-button" id="scoresButton" type="button" data-i18n="lastScores">Last 10</button>
+          <button class="text-button danger" id="resetButton" type="button" data-i18n="reset">Reset</button>
+        </div>
+
+        <div class="legend" aria-label="Special balloons">
+          <span><i class="dot boom"></i><b data-i18n="legendBoom">burst</b></span>
+          <span><i class="dot trap"></i><b data-i18n="legendTrap">trap</b></span>
+          <span><i class="dot speed"></i><b data-i18n="legendSpeed">turbo</b></span>
+          <span><i class="dot shell"></i><b data-i18n="legendShell">shell</b></span>
+          <span><i class="dot gold"></i><b data-i18n="legendGold">bonus</b></span>
+        </div>
+      </section>
     </main>
 
     <dialog id="scoresModal">
       <form method="dialog" class="modal-panel">
         <header>
-          <h1>Últimas pontuações</h1>
-          <button class="icon-button" value="close" aria-label="Fechar" title="Fechar">×</button>
+          <h1 data-i18n="scoreHistoryTitle">Recent scores</h1>
+          <button class="close-button" value="close" aria-label="Close" title="Close">x</button>
         </header>
         <ol id="scoreHistory" class="score-history"></ol>
-        <p id="emptyHistory" class="empty-history">Nenhuma pontuação salva ainda.</p>
+        <p id="emptyHistory" class="empty-history" data-i18n="emptyHistory">No saved scores yet.</p>
       </form>
     </dialog>
 
-    <script src="game.js"></script>
+    <script src="game.js" type="module"></script>
   </body>
 </html>

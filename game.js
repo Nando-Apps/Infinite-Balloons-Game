@@ -11,18 +11,100 @@ const resetButton = document.getElementById("resetButton");
 const scoresModal = document.getElementById("scoresModal");
 const scoreHistory = document.getElementById("scoreHistory");
 const emptyHistory = document.getElementById("emptyHistory");
+const localeButtons = document.querySelectorAll("[data-locale-option]");
+const closeButton = document.querySelector(".close-button");
 
 const STORAGE = {
   highScore: "balloonGame.highScore",
   history: "balloonGame.history",
   sound: "balloonGame.sound",
-  difficulty: "balloonGame.difficulty"
+  difficulty: "balloonGame.difficulty",
+  locale: "balloonGame.locale"
+};
+
+const I18N = {
+  "pt-BR": {
+    title: "Baloes Infinitos",
+    score: "Pontos",
+    highScore: "Recorde",
+    sound: "Som",
+    soundOn: "Som ligado",
+    soundOff: "Som desligado",
+    soundOnShort: "ON",
+    soundOffShort: "OFF",
+    difficulty: "Dificuldade",
+    difficultyEasy: "Leve",
+    difficultyNormal: "Normal",
+    difficultyHard: "Insana",
+    lastScores: "Ultimas 10",
+    reset: "Reiniciar",
+    legendBoom: "rajada",
+    legendTrap: "falso",
+    legendSpeed: "turbo",
+    legendShell: "casco",
+    legendGold: "bonus",
+    scoreHistoryTitle: "Ultimas pontuacoes",
+    emptyHistory: "Nenhuma pontuacao salva ainda.",
+    points: "pontos",
+    lightWind: "vento leve",
+    hardShell: "cascas duras: 3 toques",
+    turboBalloons: "turbo nos baloes",
+    frozenWind: "vento congelado",
+    hitsLeft: "{count} toque(s) para quebrar",
+    trapReset: "balao falso: pontuacao zerada",
+    turboOn: "turbo ativado",
+    shellOn: "cascas duras por 11s",
+    goldBonus: "+10 pontos",
+    freezeOn: "vento lento por 6s",
+    burst: "rajada: +{points}",
+    newWind: "novo vento",
+    difficultyStatus: "dificuldade: {difficulty}",
+    close: "Fechar"
+  },
+  "en-US": {
+    title: "Infinite Balloons",
+    score: "Score",
+    highScore: "High score",
+    sound: "Sound",
+    soundOn: "Sound on",
+    soundOff: "Sound off",
+    soundOnShort: "ON",
+    soundOffShort: "OFF",
+    difficulty: "Difficulty",
+    difficultyEasy: "Easy",
+    difficultyNormal: "Normal",
+    difficultyHard: "Hard",
+    lastScores: "Last 10",
+    reset: "Reset",
+    legendBoom: "burst",
+    legendTrap: "trap",
+    legendSpeed: "turbo",
+    legendShell: "shell",
+    legendGold: "bonus",
+    scoreHistoryTitle: "Recent scores",
+    emptyHistory: "No saved scores yet.",
+    points: "points",
+    lightWind: "light wind",
+    hardShell: "hard shells: 3 taps",
+    turboBalloons: "balloon turbo",
+    frozenWind: "frozen wind",
+    hitsLeft: "{count} tap(s) to break",
+    trapReset: "trap balloon: score reset",
+    turboOn: "turbo enabled",
+    shellOn: "hard shells for 11s",
+    goldBonus: "+10 points",
+    freezeOn: "slow wind for 6s",
+    burst: "burst: +{points}",
+    newWind: "fresh wind",
+    difficultyStatus: "difficulty: {difficulty}",
+    close: "Close"
+  }
 };
 
 const DIFFICULTY = {
-  easy: { label: "Leve", spawn: 940, speed: 0.82, max: 18 },
-  normal: { label: "Normal", spawn: 710, speed: 1, max: 25 },
-  hard: { label: "Insana", spawn: 510, speed: 1.18, max: 34 }
+  easy: { labelKey: "difficultyEasy", spawn: 940, speed: 0.82, max: 18 },
+  normal: { labelKey: "difficultyNormal", spawn: 710, speed: 1, max: 25 },
+  hard: { labelKey: "difficultyHard", spawn: 510, speed: 1.18, max: 34 }
 };
 
 const SPECIALS = {
@@ -49,10 +131,12 @@ let height = 0;
 let dpr = 1;
 let balloons = [];
 let particles = [];
+let shockwaves = [];
 let score = 0;
 let highScore = Number(localStorage.getItem(STORAGE.highScore) || 0);
 let soundEnabled = localStorage.getItem(STORAGE.sound) !== "false";
 let difficulty = localStorage.getItem(STORAGE.difficulty) || "normal";
+let locale = localStorage.getItem(STORAGE.locale) || "pt-BR";
 let lastFrame = performance.now();
 let spawnClock = 0;
 let windTime = 0;
@@ -63,9 +147,44 @@ let audioContext = null;
 let statusUntil = 0;
 
 if (!DIFFICULTY[difficulty]) difficulty = "normal";
+if (!I18N[locale]) locale = "pt-BR";
+
 difficultySelect.value = difficulty;
 highScoreEl.textContent = highScore;
+applyLocale();
 syncSoundButton();
+
+function t(key, params = {}) {
+  let text = I18N[locale][key] || I18N["en-US"][key] || key;
+  for (const [name, value] of Object.entries(params)) {
+    text = text.replace(`{${name}}`, value);
+  }
+  return text;
+}
+
+function applyLocale() {
+  document.documentElement.lang = locale;
+  document.title = t("title");
+  canvas.setAttribute("aria-label", t("title"));
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.dataset.i18n);
+  }
+  for (const option of difficultySelect.options) {
+    option.textContent = t(option.dataset.i18n);
+  }
+  for (const button of localeButtons) {
+    const isActive = button.dataset.localeOption === locale;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+  closeButton.setAttribute("aria-label", t("close"));
+  closeButton.title = t("close");
+  syncSoundButton();
+  if (performance.now() > statusUntil) {
+    statusPill.textContent = t("lightWind");
+  }
+  if (scoresModal.open) renderHistory();
+}
 
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -84,6 +203,16 @@ function pick(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function easeOutBack(value) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(value - 1, 3) + c1 * Math.pow(value - 1, 2);
+}
+
 function getSpecialType() {
   const roll = Math.random();
   let cursor = 0;
@@ -97,26 +226,30 @@ function getSpecialType() {
 function createBalloon(forcedType) {
   const type = forcedType || getSpecialType();
   const [base, highlight] = pick(colors);
-  const radius = random(25, 42);
+  const compact = width < 520;
+  const radius = random(compact ? 22 : 25, compact ? 36 : 43);
   const isShielded = performance.now() < shieldUntil && type !== "trap";
   const speedBase = random(54, 132) * DIFFICULTY[difficulty].speed;
+  const startX = random(radius + 10, Math.max(radius + 12, width - radius - 10));
   const balloon = {
     id: `${Date.now()}-${Math.random()}`,
-    x: random(radius, width - radius),
-    y: height + radius + random(0, 90),
+    x: startX,
+    y: height + radius + random(0, compact ? 70 : 100),
     radius,
-    height: radius * random(1.18, 1.35),
+    height: radius * random(1.18, 1.36),
     base,
     highlight,
     type,
     speed: type === "boom" ? speedBase * 2.45 : type === "trap" ? speedBase * random(0.72, 1.1) : speedBase,
-    sway: random(18, 58),
-    swaySpeed: random(0.0018, 0.004),
+    sway: random(compact ? 12 : 18, compact ? 38 : 58),
+    swaySpeed: random(0.0018, 0.0044),
     phase: random(0, Math.PI * 2),
-    spin: random(-0.18, 0.18),
+    spin: random(-0.2, 0.2),
     popped: false,
     hitsLeft: isShielded ? 3 : 1,
-    bornAt: performance.now()
+    bornAt: performance.now(),
+    currentX: startX,
+    trail: []
   };
 
   if (type === "gold") balloon.radius *= 0.86;
@@ -127,12 +260,14 @@ function createBalloon(forcedType) {
 function spawnBalloon(dt) {
   const config = DIFFICULTY[difficulty];
   const boosted = performance.now() < speedBoostUntil;
+  const compact = width < 520;
   spawnClock += dt;
-  const interval = config.spawn * (boosted ? 0.58 : 1);
-  if (spawnClock > interval && balloons.length < config.max) {
+  const interval = config.spawn * (boosted ? 0.58 : 1) * (compact ? 1.12 : 1);
+  const maxVisible = compact ? Math.max(10, Math.floor(config.max * 0.72)) : config.max;
+  if (spawnClock > interval && balloons.length < maxVisible) {
     spawnClock = 0;
     balloons.push(createBalloon());
-    if (Math.random() < 0.18 && balloons.length < config.max) {
+    if (!compact && Math.random() < 0.18 && balloons.length < maxVisible) {
       balloons.push(createBalloon("normal"));
     }
   }
@@ -148,8 +283,19 @@ function update(dt, now) {
   for (const balloon of balloons) {
     balloon.y -= (balloon.speed * speedMultiplier * dt) / 1000;
     const wind = Math.sin(windTime * balloon.swaySpeed + balloon.phase) * balloon.sway;
-    balloon.currentX = balloon.x + wind + Math.sin(now * 0.0012 + balloon.phase) * 8;
+    const microWind = Math.sin(now * 0.0018 + balloon.phase * 1.7) * 5;
+    balloon.currentX = clamp(balloon.x + wind + microWind, balloon.radius * 0.7, width - balloon.radius * 0.7);
     balloon.rotation = Math.sin(now * 0.0015 + balloon.phase) * balloon.spin;
+    balloon.breath = 1 + Math.sin(now * 0.004 + balloon.phase) * 0.018;
+
+    if (!balloon.trail.length || distance(balloon.trail[balloon.trail.length - 1], balloon) > 18) {
+      balloon.trail.push({ x: balloon.currentX, y: balloon.y + balloon.height * 0.8, life: 1 });
+      if (balloon.trail.length > 7) balloon.trail.shift();
+    }
+    for (const point of balloon.trail) {
+      point.life -= dt / 1900;
+    }
+    balloon.trail = balloon.trail.filter(point => point.life > 0);
   }
 
   balloons = balloons.filter(balloon => balloon.y + balloon.height > -80 && !balloon.popped);
@@ -159,21 +305,32 @@ function update(dt, now) {
     particle.x += (particle.vx * dt) / 1000;
     particle.y += (particle.vy * dt) / 1000;
     particle.vy += (210 * dt) / 1000;
+    particle.rotation += particle.spin * dt;
   }
   particles = particles.filter(particle => particle.life > 0);
 
-  if (now > statusUntil) {
-    if (now < shieldUntil) setStatus("cascas duras: 3 toques", 260);
-    else if (boosted) setStatus("turbo nos balões", 260);
-    else if (frozen) setStatus("vento congelado", 260);
-    else statusPill.textContent = "vento leve";
+  for (const wave of shockwaves) {
+    wave.life -= dt;
+    wave.radius += (wave.speed * dt) / 1000;
   }
+  shockwaves = shockwaves.filter(wave => wave.life > 0);
+
+  if (now > statusUntil) {
+    if (now < shieldUntil) setStatus(t("hardShell"), 260);
+    else if (boosted) setStatus(t("turboBalloons"), 260);
+    else if (frozen) setStatus(t("frozenWind"), 260);
+    else statusPill.textContent = t("lightWind");
+  }
+}
+
+function distance(point, balloon) {
+  return Math.hypot(point.x - balloon.currentX, point.y - balloon.y);
 }
 
 function drawBackground(now) {
   ctx.clearRect(0, 0, width, height);
   ctx.save();
-  ctx.globalAlpha = 0.28;
+  ctx.globalAlpha = 0.24;
   ctx.fillStyle = "#ffffff";
   for (let i = 0; i < 34; i += 1) {
     const x = (i * 137 + Math.sin(now * 0.00014 + i) * 26) % width;
@@ -182,23 +339,58 @@ function drawBackground(now) {
     ctx.arc(x, y, (i % 5) + 1, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i += 1) {
+    const y = ((i + 1) * height) / 7 + Math.sin(now * 0.0004 + i) * 18;
+    ctx.beginPath();
+    ctx.moveTo(-40, y);
+    ctx.bezierCurveTo(width * 0.22, y - 24, width * 0.58, y + 24, width + 40, y - 10);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
-function drawBalloon(balloon) {
+function drawBalloonTrail(balloon) {
+  if (balloon.type === "trap") return;
+  ctx.save();
+  for (const point of balloon.trail) {
+    ctx.globalAlpha = point.life * 0.16;
+    ctx.fillStyle = balloon.highlight;
+    ctx.beginPath();
+    ctx.ellipse(point.x, point.y, balloon.radius * 0.22, balloon.radius * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBalloon(balloon, now) {
   const x = balloon.currentX || balloon.x;
   const y = balloon.y;
   const r = balloon.radius;
   const h = balloon.height;
+  const age = now - balloon.bornAt;
+  const intro = clamp(age / 460, 0, 1);
+  const scale = 0.3 + easeOutBack(intro) * 0.7;
+  const squash = balloon.breath || 1;
+
+  drawBalloonTrail(balloon);
 
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(balloon.rotation || 0);
+  ctx.scale(scale / squash, scale * squash);
+
+  ctx.shadowColor = "rgba(0, 0, 0, 0.24)";
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetY = 12;
 
   const gradient = ctx.createRadialGradient(-r * 0.38, -h * 0.36, r * 0.12, 0, 0, r * 1.2);
   gradient.addColorStop(0, balloon.highlight);
   gradient.addColorStop(0.42, balloon.base);
-  gradient.addColorStop(1, shade(balloon.base, -28));
+  gradient.addColorStop(1, shade(balloon.base, -30));
 
   ctx.fillStyle = gradient;
   ctx.beginPath();
@@ -210,29 +402,38 @@ function drawBalloon(balloon) {
     ctx.ellipse(0, 0, r, h, 0, 0, Math.PI * 2);
   }
   ctx.fill();
+  ctx.shadowColor = "transparent";
 
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillStyle = "rgba(255,255,255,0.48)";
   ctx.beginPath();
   ctx.ellipse(-r * 0.34, -h * 0.36, r * 0.18, h * 0.3, -0.35, 0, Math.PI * 2);
   ctx.fill();
 
   drawSpecialMark(balloon, r, h);
+  drawShield(balloon, r, h, now);
+  drawKnotAndString(balloon, r, h, now);
 
-  if (balloon.hitsLeft > 1) {
-    ctx.strokeStyle = "rgba(255,255,255,0.72)";
-    ctx.lineWidth = 3;
-    ctx.setLineDash([8, 7]);
-    ctx.beginPath();
-    ctx.ellipse(0, 0, r + 7, h + 7, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 16px system-ui";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(balloon.hitsLeft, 0, 0);
-  }
+  ctx.restore();
+}
 
+function drawShield(balloon, r, h, now) {
+  if (balloon.hitsLeft <= 1) return;
+  const pulse = 1 + Math.sin(now * 0.008) * 0.035;
+  ctx.strokeStyle = "rgba(255,255,255,0.72)";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 7]);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, (r + 7) * pulse, (h + 7) * pulse, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 16px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(balloon.hitsLeft, 0, 0);
+}
+
+function drawKnotAndString(balloon, r, h, now) {
   ctx.fillStyle = shade(balloon.base, -38);
   ctx.beginPath();
   ctx.moveTo(-8, h * 0.9);
@@ -241,14 +442,13 @@ function drawBalloon(balloon) {
   ctx.closePath();
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(255,255,255,0.42)";
+  const wiggle = Math.sin(now * 0.006 + balloon.phase) * 8;
+  ctx.strokeStyle = "rgba(255,255,255,0.46)";
   ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(0, h * 1.08);
-  ctx.bezierCurveTo(-10, h * 1.45, 12, h * 1.62, 0, h * 2.02);
+  ctx.bezierCurveTo(-10 + wiggle, h * 1.42, 12 - wiggle, h * 1.64, 0, h * 2.02);
   ctx.stroke();
-
-  ctx.restore();
 }
 
 function drawSpecialMark(balloon, r, h) {
@@ -330,10 +530,25 @@ function drawParticles() {
   for (const particle of particles) {
     ctx.save();
     ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+    ctx.translate(particle.x, particle.y);
+    ctx.rotate(particle.rotation);
     ctx.fillStyle = particle.color;
     ctx.beginPath();
-    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+    ctx.roundRect(-particle.size * 0.5, -particle.size * 0.35, particle.size, particle.size * 0.7, 2);
     ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawShockwaves() {
+  for (const wave of shockwaves) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, wave.life / wave.maxLife) * 0.55;
+    ctx.strokeStyle = wave.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 }
@@ -341,7 +556,8 @@ function drawParticles() {
 function render(now) {
   drawBackground(now);
   const ordered = [...balloons].sort((a, b) => a.radius - b.radius);
-  ordered.forEach(drawBalloon);
+  ordered.forEach(balloon => drawBalloon(balloon, now));
+  drawShockwaves();
   drawParticles();
 }
 
@@ -355,10 +571,9 @@ function tick(now) {
 
 function pointerPosition(event) {
   const rect = canvas.getBoundingClientRect();
-  const source = event.touches?.[0] || event.changedTouches?.[0] || event;
   return {
-    x: source.clientX - rect.left,
-    y: source.clientY - rect.top
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
   };
 }
 
@@ -368,7 +583,7 @@ function hitTest(point) {
     const x = balloon.currentX || balloon.x;
     const dx = (point.x - x) / balloon.radius;
     const dy = (point.y - balloon.y) / balloon.height;
-    if (dx * dx + dy * dy <= 1.05) return balloon;
+    if (dx * dx + dy * dy <= 1.18) return balloon;
   }
   return null;
 }
@@ -381,12 +596,26 @@ function handlePop(event) {
 
   balloon.hitsLeft -= 1;
   if (balloon.hitsLeft > 0) {
+    tapShield(balloon);
     playTone(160, 0.04, "square", 0.04);
-    setStatus(`${balloon.hitsLeft} toque(s) para quebrar`, 900);
+    setStatus(t("hitsLeft", { count: balloon.hitsLeft }), 900);
     return;
   }
 
   popBalloon(balloon, true);
+}
+
+function tapShield(balloon) {
+  const x = balloon.currentX || balloon.x;
+  shockwaves.push({
+    x,
+    y: balloon.y,
+    radius: balloon.radius,
+    speed: 130,
+    life: 260,
+    maxLife: 260,
+    color: "rgba(255,255,255,0.9)"
+  });
 }
 
 function popBalloon(balloon, manual) {
@@ -407,26 +636,26 @@ function popBalloon(balloon, manual) {
       archiveScore();
       score = 0;
       updateScore();
-      setStatus("balão falso: pontuação zerada", 1800);
+      setStatus(t("trapReset"), 1800);
       break;
     case "speed":
       addScore(SPECIALS.speed.points);
       speedBoostUntil = performance.now() + 7800;
-      setStatus("turbo ativado", 1600);
+      setStatus(t("turboOn"), 1600);
       break;
     case "shell":
       addScore(SPECIALS.shell.points);
       shieldUntil = performance.now() + 11000;
-      setStatus("cascas duras por 11s", 1800);
+      setStatus(t("shellOn"), 1800);
       break;
     case "gold":
       addScore(SPECIALS.gold.points);
-      setStatus("+10 pontos", 1200);
+      setStatus(t("goldBonus"), 1200);
       break;
     case "freeze":
       addScore(SPECIALS.freeze.points);
       freezeUntil = performance.now() + 6200;
-      setStatus("vento lento por 6s", 1500);
+      setStatus(t("freezeOn"), 1500);
       break;
     default:
       addScore(1);
@@ -442,24 +671,36 @@ function popAllVisible() {
     points += balloon.type === "gold" ? SPECIALS.gold.points : balloon.type === "trap" ? 0 : 1;
   }
   addScore(points);
-  setStatus(`rajada: +${points}`, 1600);
+  setStatus(t("burst", { points }), 1600);
 }
 
 function burst(balloon) {
   const x = balloon.currentX || balloon.x;
   const y = balloon.y;
-  for (let i = 0; i < 18; i += 1) {
+  shockwaves.push({
+    x,
+    y,
+    radius: balloon.radius * 0.7,
+    speed: 260,
+    life: 420,
+    maxLife: 420,
+    color: balloon.highlight
+  });
+
+  for (let i = 0; i < 22; i += 1) {
     const angle = random(0, Math.PI * 2);
-    const speed = random(70, 270);
+    const speed = random(80, 310);
     particles.push({
       x,
       y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      life: random(360, 720),
-      maxLife: 720,
-      size: random(2.4, 6.2),
-      color: i % 3 ? balloon.base : balloon.highlight
+      life: random(380, 760),
+      maxLife: 760,
+      size: random(4, 9),
+      color: i % 3 ? balloon.base : balloon.highlight,
+      rotation: random(0, Math.PI),
+      spin: random(-0.014, 0.014)
     });
   }
 }
@@ -505,7 +746,8 @@ function renderHistory() {
   for (const item of history) {
     const li = document.createElement("li");
     const date = new Date(item.date);
-    li.innerHTML = `<strong>${item.score}</strong> pontos · ${DIFFICULTY[item.difficulty]?.label || "Normal"} · ${date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`;
+    const label = t(DIFFICULTY[item.difficulty]?.labelKey || "difficultyNormal");
+    li.innerHTML = `<strong>${item.score}</strong> ${t("points")} · ${label} · ${date.toLocaleString(locale, { dateStyle: "short", timeStyle: "short" })}`;
     scoreHistory.appendChild(li);
   }
 }
@@ -520,12 +762,13 @@ function resetGame() {
   score = 0;
   balloons = [];
   particles = [];
+  shockwaves = [];
   speedBoostUntil = 0;
   shieldUntil = 0;
   freezeUntil = 0;
   spawnClock = 0;
   updateScore();
-  setStatus("novo vento", 1200);
+  setStatus(t("newWind"), 1200);
 }
 
 function shade(hex, amount) {
@@ -553,13 +796,14 @@ function playTone(frequency, duration, type, volume) {
 }
 
 function syncSoundButton() {
-  soundIcon.textContent = soundEnabled ? "🔊" : "🔇";
-  soundToggle.title = soundEnabled ? "Som ligado" : "Som desligado";
+  soundIcon.textContent = soundEnabled ? t("soundOnShort") : t("soundOffShort");
+  soundToggle.title = soundEnabled ? t("soundOn") : t("soundOff");
   soundToggle.setAttribute("aria-label", soundToggle.title);
 }
 
 canvas.addEventListener("pointerdown", handlePop);
 window.addEventListener("resize", resize);
+
 soundToggle.addEventListener("click", () => {
   soundEnabled = !soundEnabled;
   localStorage.setItem(STORAGE.sound, String(soundEnabled));
@@ -569,8 +813,16 @@ soundToggle.addEventListener("click", () => {
 difficultySelect.addEventListener("change", () => {
   difficulty = difficultySelect.value;
   localStorage.setItem(STORAGE.difficulty, difficulty);
-  setStatus(`dificuldade: ${DIFFICULTY[difficulty].label}`, 1200);
+  setStatus(t("difficultyStatus", { difficulty: t(DIFFICULTY[difficulty].labelKey) }), 1200);
 });
+
+for (const button of localeButtons) {
+  button.addEventListener("click", () => {
+    locale = button.dataset.localeOption;
+    localStorage.setItem(STORAGE.locale, locale);
+    applyLocale();
+  });
+}
 
 scoresButton.addEventListener("click", () => {
   renderHistory();
