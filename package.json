@@ -1,5 +1,9 @@
 {
+    "type": "module",
+    "name": "infinite-balloons",
     "scripts": {
-        "dev": "npx -y vite --host"
+        "dev": "npx -y vite --host",
+        "build": "npx -y vite build",
+        "preview": "npx -y vite preview"
     }
 }
