@@ -4,6 +4,8 @@
 
 Baloes Infinitos e um pequeno jogo arcade em HTML5 feito com JavaScript puro, CSS e Canvas. Os baloes sobem pela tela com um movimento leve de vento; o jogador toca neles para estourar, marcar pontos e lidar com baloes especiais de bonus ou penalidade.
 
+![Image](./image01.png)
+
 ## Recursos
 
 - Surgimento infinito de baloes com cores, velocidades e balanco aleatorios.

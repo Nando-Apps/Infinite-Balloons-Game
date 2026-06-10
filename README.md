@@ -4,6 +4,8 @@
 
 Infinite Balloons is a small HTML5 arcade game built with vanilla JavaScript, CSS, and Canvas. Balloons rise from the bottom of the screen with light wind movement; the player pops them to score points while watching for special balloons with bonus or penalty effects.
 
+![Image](./image01.png)
+
 ## Features
 
 - Endless balloon spawning with randomized colors, speed, and sway.
